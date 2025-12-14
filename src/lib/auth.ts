@@ -7,7 +7,6 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
-      ...schema,
       user: schema.user,
       session: schema.session,
       account: schema.account,
@@ -17,5 +16,4 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
-  // Google OAuth
 });

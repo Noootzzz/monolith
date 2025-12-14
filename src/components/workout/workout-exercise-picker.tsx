@@ -1,15 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import {
-  Plus,
-  Check,
-  Loader2,
-  Dumbbell,
-  Search,
-  ChevronDown,
-} from "lucide-react";
+import { Plus, Check, Loader2, Search, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +23,7 @@ import { ExerciseFilters } from "@/components/exercises/exercise-filters";
 import { addExercisesToWorkout } from "@/app/actions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getMuscleColor } from "@/lib/constants";
 
 interface Exercise {
   id: number;
@@ -155,7 +150,7 @@ export function WorkoutExercisePicker({
                             : "bg-card hover:bg-accent/50 hover:border-primary/50"
                         )}
                       >
-                        <div className="pr-4">
+                        <div className="pr-4 flex flex-col items-start gap-1">
                           <div
                             className={cn(
                               "font-semibold text-sm line-clamp-2",
@@ -163,6 +158,23 @@ export function WorkoutExercisePicker({
                             )}
                           >
                             {exo.name}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {exo.isSystem && (
+                              <span className="text-[10px] text-muted-foreground bg-blue-300 px-1.5 rounded border">
+                                Officiel
+                              </span>
+                            )}
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "text-[10px] px-1.5 py-0 h-5 font-normal border",
+                                getMuscleColor(exo.targetMuscle)
+                              )}
+                            >
+                              {exo.targetMuscle}
+                            </Badge>
                           </div>
                         </div>
 

@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { RemoveExerciseButton } from "@/components/workout/remove-exercise-button";
 import { SetLogger } from "@/components/workout/set-logger";
+import { getMuscleColor } from "@/lib/constants";
 
 interface WorkoutExerciseWithSets {
   id: number;
@@ -127,10 +128,14 @@ export function DraggableWorkoutList({
                   <div className="flex items-center gap-2">
                     <Badge
                       variant="outline"
-                      className="text-[10px] hidden sm:flex"
+                      className={cn(
+                        "text-[10px] hidden sm:flex border px-2 py-0.5 shadow-sm transition-colors",
+                        getMuscleColor(exo.targetMuscle)
+                      )}
                     >
                       {exo.targetMuscle}
                     </Badge>
+
                     <RemoveExerciseButton id={exo.id} />
                   </div>
                 </div>

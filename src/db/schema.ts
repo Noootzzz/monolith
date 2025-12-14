@@ -7,7 +7,6 @@ import {
   real,
   timestamp,
   json,
-  foreignKey,
 } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
@@ -16,9 +15,8 @@ export const user = pgTable("user", {
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").notNull(),
   image: text("image"),
-  createdAt: timestamp("created_at").notNull(),
-  updatedAt: timestamp("updated_at").notNull(),
-  // NOS CHAMPS CUSTOMS
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
   bodyweight: real("bodyweight").default(70),
   isDeleted: boolean("is_deleted").default(false),
   preferences: json("preferences"),
@@ -27,6 +25,9 @@ export const user = pgTable("user", {
 export const session = pgTable("session", {
   id: text("id").primaryKey(),
   expiresAt: timestamp("expires_at").notNull(),
+  token: text("token").notNull().unique(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
   userId: text("user_id")
@@ -46,6 +47,8 @@ export const account = pgTable("account", {
   idToken: text("id_token"),
   expiresAt: timestamp("expires_at"),
   password: text("password"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const verification = pgTable("verification", {
@@ -53,6 +56,8 @@ export const verification = pgTable("verification", {
   identifier: text("identifier").notNull(),
   value: text("value").notNull(),
   expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at"),
+  updatedAt: timestamp("updated_at"),
 });
 
 export const exercises = pgTable("exercises", {

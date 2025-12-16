@@ -22,15 +22,15 @@ import { reorderExercises } from "@/app/actions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-import { Badge } from "@/components/ui/badge";
 import { RemoveExerciseButton } from "@/components/workout/remove-exercise-button";
 import { SetLogger } from "@/components/workout/set-logger";
-import { getMuscleColor } from "@/lib/constants";
+import { GripVertical } from "lucide-react";
 
 interface WorkoutExerciseWithSets {
   id: number;
   name: string;
   targetMuscle: string;
+  trackWeight: boolean;
   sets: any[];
 }
 
@@ -54,10 +54,7 @@ export function DraggableWorkoutList({
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 100,
-        tolerance: 5,
-      },
+      activationConstraint: { delay: 100, tolerance: 5 },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
@@ -66,25 +63,20 @@ export function DraggableWorkoutList({
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-
     if (over && active.id !== over.id) {
       const oldIndex = items.findIndex((item) => item.id === active.id);
       const newIndex = items.findIndex((item) => item.id === over.id);
-
       const newItems = arrayMove(items, oldIndex, newIndex);
-
       setItems(newItems);
-
       const updates = newItems.map((item, index) => ({
         id: item.id,
         orderIndex: index,
       }));
-
       startTransition(async () => {
         try {
           await reorderExercises(updates);
         } catch (error) {
-          toast.error("Erreur de sauvegarde de l'ordre");
+          toast.error("Erreur");
           setItems(items);
         }
       });
@@ -102,49 +94,39 @@ export function DraggableWorkoutList({
         items={items.map((i) => i.id)}
         strategy={verticalListSortingStrategy}
       >
-        <div
-          className={cn(
-            "space-y-4",
-            isPending && "opacity-70 transition-opacity"
-          )}
-        >
+        <div className={cn("space-y-6", isPending && "opacity-70")}>
           {items.map((exo, index) => (
             <SortableExerciseCard key={exo.id} id={exo.id}>
-              <div className="bg-card border rounded-xl overflow-hidden shadow-sm transition-all">
-                <div
-                  className={cn(
-                    "p-3 flex justify-between items-center pl-10",
-                    !isPlanning ? "border-b bg-muted/30" : "bg-card"
-                  )}
-                >
-                  <div className="flex items-center gap-1">
-                    <span className="flex items-center justify-center h-6 w-6 rounded-full bg-black text-white dark:bg-white dark:text-black text-xs font-bold shadow-sm mr-2 shrink-0">
-                      {index + 1}
-                    </span>
-                    <span className="font-semibold select-none">
-                      {exo.name}
+              <div className="relative bg-card dark:bg-zinc-900/40 rounded-xl border shadow-sm p-4 transition-all">
+                <div className="flex justify-between items-start mb-4 border-b pb-3 border-border/40">
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-3">
+                      <span className="flex items-center justify-center h-6 w-6 rounded bg-primary/10 text-primary text-xs font-bold font-mono">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <h3 className="font-bold text-lg leading-tight text-card-foreground">
+                        {exo.name}
+                      </h3>
+                    </div>
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold pl-9">
+                      {exo.targetMuscle}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "text-[10px] hidden sm:flex border px-2 py-0.5 shadow-sm transition-colors",
-                        getMuscleColor(exo.targetMuscle)
-                      )}
-                    >
-                      {exo.targetMuscle}
-                    </Badge>
 
+                  <div className="flex items-center gap-1 opacity-60 hover:opacity-100">
+                    {isPlanning && (
+                      <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab p-1" />
+                    )}
                     <RemoveExerciseButton id={exo.id} />
                   </div>
                 </div>
 
                 {!isPlanning && (
-                  <div className="p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="mt-2">
                     <SetLogger
                       workoutExerciseId={exo.id}
                       initialSets={exo.sets}
+                      trackWeight={exo.trackWeight}
                     />
                   </div>
                 )}

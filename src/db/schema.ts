@@ -109,6 +109,7 @@ export const exercises = pgTable("exercises", {
   name: text("name").notNull(),
   targetMuscle: text("target_muscle").notNull(),
   isSystem: boolean("is_system").default(false).notNull(),
+  trackWeight: boolean("track_weight").default(true).notNull(),
 });
 
 export const workouts = pgTable("workouts", {
@@ -118,6 +119,8 @@ export const workouts = pgTable("workouts", {
     .references(() => user.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   status: text("status").notNull().default("PLANNING"),
+  duration: integer("duration"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
   startTime: timestamp("start_time"),
   endTime: timestamp("end_time"),
 });

@@ -11,7 +11,7 @@ import {
   workoutTemplates,
   workoutTemplateExercises,
 } from "@/db/schema";
-import { eq, and, desc, lt, gt } from "drizzle-orm";
+import { eq, and, desc, lt, gt, asc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -27,6 +27,9 @@ export const createExercise = async (formData: FormData) => {
   const userId = session.user.id;
   const name = formData.get("name") as string;
   const muscle = formData.get("targetMuscle") as string;
+
+  const trackWeightInput = formData.get("trackWeight");
+  const trackWeight = trackWeightInput === "on";
 
   if (!name || !muscle) {
     throw new Error("Missing data");
@@ -45,6 +48,7 @@ export const createExercise = async (formData: FormData) => {
     name,
     targetMuscle: muscle,
     isSystem: false,
+    trackWeight: trackWeight,
   });
 
   revalidatePath("/dashboard");
@@ -157,17 +161,34 @@ export async function finishWorkout(workoutId: number) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) throw new Error("Unauthorized");
 
-  await db
-    .update(workouts)
-    .set({
-      status: "COMPLETED",
-      endTime: new Date(),
-    })
+  const [workout] = await db
+    .select()
+    .from(workouts)
     .where(
       and(eq(workouts.id, workoutId), eq(workouts.userId, session.user.id))
     );
 
-  redirect("/workout");
+  if (!workout) throw new Error("Workout not found");
+
+  const endTime = new Date();
+  let duration = 0;
+
+  if (workout.startTime) {
+    const start = new Date(workout.startTime).getTime();
+    const end = endTime.getTime();
+    duration = Math.round((end - start) / 1000);
+  }
+
+  await db
+    .update(workouts)
+    .set({
+      status: "COMPLETED",
+      endTime: endTime,
+      duration: duration,
+    })
+    .where(eq(workouts.id, workoutId));
+
+  redirect("/dashboard");
 }
 
 export async function cancelWorkout(workoutId: number) {
@@ -297,7 +318,8 @@ export async function addSet(workoutExerciseId: number) {
   const existingSets = await db
     .select()
     .from(sets)
-    .where(eq(sets.workoutExerciseId, workoutExerciseId));
+    .where(eq(sets.workoutExerciseId, workoutExerciseId))
+    .orderBy(asc(sets.index));
 
   const nextIndex = existingSets.length + 1;
   const lastSet = existingSets[existingSets.length - 1];

@@ -84,9 +84,9 @@ export function SetRow({ set, trackWeight = true }: SetRowProps) {
           <Input
             type="number"
             inputMode="decimal"
-            value={weight}
-            onChange={(e) => setWeight(e.target.value)}
-            onBlur={(e) => handleBlur("weight", e.target.value)}
+            value={reps}
+            onChange={(e) => setReps(e.target.value)}
+            onBlur={(e) => handleBlur("reps", e.target.value)}
             className="h-11 text-lg font-bold text-center 
                            bg-zinc-100 border-transparent 
                            dark:bg-zinc-950 dark:border-zinc-800 dark:border 

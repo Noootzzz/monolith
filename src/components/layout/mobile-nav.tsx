@@ -46,7 +46,7 @@ export function MobileNav() {
           ))}
         </div>
         <div className="flex-shrink-0 w-20 h-full flex items-center justify-center px-1">
-          <Link href="/workout/new" className="group">
+          <Link href="/workout" className="group">
             <div className="flex flex-col items-center justify-center cursor-pointer transition-transform duration-100 active:scale-90">
               <div className="h-9 w-14 bg-primary rounded-full flex items-center justify-center shadow-md shadow-primary/25 transition-all">
                 <Dumbbell className="h-5 w-5 text-primary-foreground fill-current" />

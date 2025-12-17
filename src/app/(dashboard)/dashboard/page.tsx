@@ -221,7 +221,7 @@ export default async function DashboardPage() {
               {recentWorkouts.length === 0 ? (
                 <div className="text-sm text-muted-foreground text-center py-8 flex flex-col items-center">
                   <p>Aucune séance terminée récemment.</p>
-                  <Link href="/workout/new" className="mt-4">
+                  <Link href="/workout" className="mt-4">
                     <Button variant="outline" size="sm">
                       Commencer
                     </Button>

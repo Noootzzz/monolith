@@ -17,13 +17,11 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { SortableExerciseCard } from "./sortable-exercise-card";
+// On importe notre nouveau composant
+import { WorkoutExerciseCard } from "./workout-exercise-card";
 import { reorderExercises } from "@/app/actions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-
-import { RemoveExerciseButton } from "@/components/workout/remove-exercise-button";
-import { SetLogger } from "@/components/workout/set-logger";
 
 interface WorkoutExerciseWithSets {
   id: number;
@@ -49,12 +47,9 @@ export function DraggableWorkoutList({
   useEffect(() => {
     setItems(initialItems);
   }, [initialItems]);
-
   const sensors = useSensors(
     useSensor(PointerSensor),
-    useSensor(TouchSensor, {
-      activationConstraint: { delay: 100, tolerance: 5 },
-    }),
+    useSensor(TouchSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -95,39 +90,12 @@ export function DraggableWorkoutList({
       >
         <div className={cn("space-y-4", isPending && "opacity-70")}>
           {items.map((exo, index) => (
-            <SortableExerciseCard key={exo.id} id={exo.id}>
-              <div className="relative bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm overflow-hidden transition-all">
-                <div className="flex items-center h-14 px-3 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-100/50 dark:bg-zinc-900/50">
-                  <div className="shrink-0 w-8 flex items-center justify-start cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-foreground"></div>
-                  <div className="shrink-0 w-8 flex justify-center mr-2">
-                    <span className="flex items-center justify-center h-7 w-7 rounded-md bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 text-[11px] font-bold font-mono border border-zinc-200 dark:border-zinc-700 shadow-sm">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                  </div>
-                  <div className="flex flex-col flex-1 min-w-0 justify-center">
-                    <h3 className="font-bold text-sm leading-tight text-foreground truncate pr-2">
-                      {exo.name}
-                    </h3>
-                    <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold mt-0.5 truncate">
-                      {exo.targetMuscle}
-                    </span>
-                  </div>
-
-                  <div className="shrink-0 w-8 flex justify-end">
-                    <RemoveExerciseButton id={exo.id} />
-                  </div>
-                </div>
-                {!isPlanning && (
-                  <div className="p-3 bg-white dark:bg-black/20">
-                    <SetLogger
-                      workoutExerciseId={exo.id}
-                      initialSets={exo.sets}
-                      trackWeight={exo.trackWeight}
-                    />
-                  </div>
-                )}
-              </div>
-            </SortableExerciseCard>
+            <WorkoutExerciseCard
+              key={exo.id}
+              exo={exo}
+              index={index}
+              isPlanning={isPlanning}
+            />
           ))}
         </div>
       </SortableContext>

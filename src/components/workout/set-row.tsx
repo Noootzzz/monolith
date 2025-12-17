@@ -19,8 +19,14 @@ interface SetRowProps {
 }
 
 export function SetRow({ set, trackWeight = true }: SetRowProps) {
-  const [weight, setWeight] = useState(set.weight);
-  const [reps, setReps] = useState(set.reps.toString());
+  const formatValue = (val: string | number) => {
+    if (val === 0 || val === "0") return "";
+    return val.toString();
+  };
+
+  const [weight, setWeight] = useState(formatValue(set.weight));
+  const [reps, setReps] = useState(formatValue(set.reps));
+
   const [completed, setCompleted] = useState(!!set.isCompleted);
   const { startRest } = useWorkoutSession();
 
@@ -64,18 +70,13 @@ export function SetRow({ set, trackWeight = true }: SetRowProps) {
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
                 onBlur={(e) => handleBlur("weight", e.target.value)}
-                className="h-11 text-lg font-bold text-center 
-                           bg-zinc-100 border-transparent 
-                           dark:bg-zinc-950 dark:border-zinc-800 dark:border 
-                           focus:border-primary focus:bg-background focus:ring-1 focus:ring-primary 
-                           rounded-lg shadow-sm transition-all"
+                className="h-12 text-lg font-bold text-center bg-zinc-100 dark:bg-zinc-950 border-transparent dark:border-zinc-800 dark:border focus:border-primary focus:bg-background focus:ring-1 focus:ring-primary rounded-lg shadow-sm transition-all"
                 placeholder="-"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-zinc-400 group-focus-within:text-primary pointer-events-none uppercase">
                 KG
               </span>
             </div>
-
             <span className="text-muted-foreground/30 font-medium">✕</span>
           </>
         )}
@@ -83,15 +84,11 @@ export function SetRow({ set, trackWeight = true }: SetRowProps) {
         <div className="relative flex-1 group">
           <Input
             type="number"
-            inputMode="decimal"
+            inputMode="numeric"
             value={reps}
             onChange={(e) => setReps(e.target.value)}
             onBlur={(e) => handleBlur("reps", e.target.value)}
-            className="h-11 text-lg font-bold text-center 
-                           bg-zinc-100 border-transparent 
-                           dark:bg-zinc-950 dark:border-zinc-800 dark:border 
-                           focus:border-primary focus:bg-background focus:ring-1 focus:ring-primary 
-                           rounded-lg shadow-sm transition-all"
+            className="h-12 text-lg font-bold text-center bg-zinc-100 dark:bg-zinc-950 border-transparent dark:border-zinc-800 dark:border focus:border-primary focus:bg-background focus:ring-1 focus:ring-primary rounded-lg shadow-sm transition-all"
             placeholder="-"
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-zinc-400 group-focus-within:text-primary pointer-events-none uppercase">
@@ -103,12 +100,15 @@ export function SetRow({ set, trackWeight = true }: SetRowProps) {
       <button
         onClick={toggleComplete}
         className={cn(
-          "h-12 w-12 rounded-lg flex items-center justify-center transition-all shrink-0 active:scale-95 shadow-sm bg-green-500 text-white shadow-green-500/20"
+          "h-12 w-14 rounded-lg flex items-center justify-center transition-all shrink-0 active:scale-95 shadow-sm",
+          completed
+            ? "bg-green-500 text-white shadow-green-500/20"
+            : "bg-zinc-100 dark:bg-zinc-800 text-zinc-300 dark:text-zinc-600 hover:bg-zinc-200 dark:hover:bg-zinc-700"
         )}
       >
         <Check
           className={cn(
-            "h-6 w-6 stroke-3",
+            "h-7 w-7 stroke-[3]",
             completed ? "scale-100" : "scale-90"
           )}
         />

@@ -35,7 +35,7 @@ export function SortableExerciseCard({
       <div
         {...attributes}
         {...listeners}
-        className="absolute left-2 top-3 z-20 cursor-grab active:cursor-grabbing p-1 text-muted-foreground/50 hover:text-foreground md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+        className="absolute left-2 top-3 z-20 cursor-grab active:cursor-grabbing p-1 transition-opacity"
       >
         <GripVertical className="h-5 w-5" />
       </div>

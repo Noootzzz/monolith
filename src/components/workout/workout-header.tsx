@@ -29,14 +29,11 @@ export function WorkoutHeader({
 
   useEffect(() => {
     if (!startTime) return;
-
     const start = new Date(startTime).getTime();
     setElapsed(Math.floor((Date.now() - start) / 1000));
-
     const interval = setInterval(() => {
       setElapsed(Math.floor((Date.now() - start) / 1000));
     }, 1000);
-
     return () => clearInterval(interval);
   }, [startTime]);
 
@@ -44,7 +41,6 @@ export function WorkoutHeader({
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     const s = seconds % 60;
-
     if (h > 0) {
       return `${h}:${m.toString().padStart(2, "0")}:${s
         .toString()
@@ -62,7 +58,7 @@ export function WorkoutHeader({
   };
 
   return (
-    <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b px-4 h-16 flex items-center justify-between shadow-sm">
+    <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b h-16 flex items-center justify-between shadow-sm w-full px-4 sm:px-6 lg:px-8">
       <div className="flex items-center gap-3">
         <Link href="/dashboard">
           <Button variant="ghost" size="icon" className="-ml-2 h-8 w-8">

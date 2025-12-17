@@ -64,7 +64,11 @@ export function SetRow({ set, trackWeight = true }: SetRowProps) {
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
                 onBlur={(e) => handleBlur("weight", e.target.value)}
-                className="h-12 text-lg font-bold text-center bg-zinc-100 dark:bg-zinc-800 border-transparent focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/20 rounded-lg shadow-sm transition-all"
+                className="h-11 text-lg font-bold text-center 
+                           bg-zinc-100 border-transparent 
+                           dark:bg-zinc-950 dark:border-zinc-800 dark:border 
+                           focus:border-primary focus:bg-background focus:ring-1 focus:ring-primary 
+                           rounded-lg shadow-sm transition-all"
                 placeholder="-"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-zinc-400 group-focus-within:text-primary pointer-events-none uppercase">
@@ -79,11 +83,15 @@ export function SetRow({ set, trackWeight = true }: SetRowProps) {
         <div className="relative flex-1 group">
           <Input
             type="number"
-            inputMode="numeric"
-            value={reps}
-            onChange={(e) => setReps(e.target.value)}
-            onBlur={(e) => handleBlur("reps", e.target.value)}
-            className="h-12 text-lg font-bold text-center bg-zinc-100 dark:bg-zinc-800 border-transparent focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/20 rounded-lg shadow-sm transition-all"
+            inputMode="decimal"
+            value={weight}
+            onChange={(e) => setWeight(e.target.value)}
+            onBlur={(e) => handleBlur("weight", e.target.value)}
+            className="h-11 text-lg font-bold text-center 
+                           bg-zinc-100 border-transparent 
+                           dark:bg-zinc-950 dark:border-zinc-800 dark:border 
+                           focus:border-primary focus:bg-background focus:ring-1 focus:ring-primary 
+                           rounded-lg shadow-sm transition-all"
             placeholder="-"
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-zinc-400 group-focus-within:text-primary pointer-events-none uppercase">
@@ -96,7 +104,6 @@ export function SetRow({ set, trackWeight = true }: SetRowProps) {
         onClick={toggleComplete}
         className={cn(
           "h-12 w-12 rounded-lg flex items-center justify-center transition-all shrink-0 active:scale-95 shadow-sm bg-green-500 text-white shadow-green-500/20"
-            
         )}
       >
         <Check

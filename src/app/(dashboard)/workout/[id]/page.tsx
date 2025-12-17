@@ -47,7 +47,7 @@ export default async function ActiveWorkoutPage({
       name: exercises.name,
       targetMuscle: exercises.targetMuscle,
       orderIndex: workoutExercises.orderIndex,
-      trackWeight: exercises.trackWeight, 
+      trackWeight: exercises.trackWeight,
     })
     .from(workoutExercises)
     .innerJoin(exercises, eq(workoutExercises.exerciseId, exercises.id))
@@ -83,10 +83,9 @@ export default async function ActiveWorkoutPage({
 
   return (
     <WorkoutSessionProvider>
-      <div className="flex flex-col min-h-screen bg-background pb-32">
-        {" "}
+      <div className="flex flex-col min-h-screen bg-background pb-56">
         {isPlanning ? (
-          <div className="flex flex-col gap-4 mb-4 border-b pb-4 bg-background/95 backdrop-blur sticky top-0 z-20 pt-4 px-4 shadow-sm">
+          <div className="flex flex-col gap-4 mb-4 border-b pb-4 bg-background/95 backdrop-blur sticky top-0 z-20 pt-4 shadow-sm w-full px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between">
               <Link
                 href="/workout"
@@ -116,10 +115,10 @@ export default async function ActiveWorkoutPage({
                 }}
               >
                 <Button
-                  size="lg"
-                  className="gap-2 font-bold shadow-lg shadow-primary/20 animate-pulse"
+                  size="default"
+                  className="font-bold shadow-lg shadow-primary/20 h-9 px-4 text-xs sm:text-sm sm:h-10"
                 >
-                  <Play className="h-5 w-5 fill-current" />
+                  <Play className="h-4 w-4 fill-current mr-2" />
                   LANCER
                 </Button>
               </form>
@@ -132,7 +131,8 @@ export default async function ActiveWorkoutPage({
             startTime={workout.startTime}
           />
         )}
-        <div className="flex-1 px-4 max-w-3xl mx-auto w-full space-y-8 pt-8">
+
+        <div className="flex-1 w-full space-y-8 pt-8 px-4 sm:px-6 lg:px-8">
           {workoutExos.length === 0 ? (
             <div className="border border-dashed rounded-lg p-12 flex flex-col items-center justify-center text-center gap-4 text-muted-foreground bg-zinc-50/50 dark:bg-zinc-900/50 mt-8">
               <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">

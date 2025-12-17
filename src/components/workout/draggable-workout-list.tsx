@@ -24,7 +24,6 @@ import { cn } from "@/lib/utils";
 
 import { RemoveExerciseButton } from "@/components/workout/remove-exercise-button";
 import { SetLogger } from "@/components/workout/set-logger";
-import { GripVertical } from "lucide-react";
 
 interface WorkoutExerciseWithSets {
   id: number;
@@ -94,35 +93,32 @@ export function DraggableWorkoutList({
         items={items.map((i) => i.id)}
         strategy={verticalListSortingStrategy}
       >
-        <div className={cn("space-y-6", isPending && "opacity-70")}>
+        <div className={cn("space-y-4", isPending && "opacity-70")}>
           {items.map((exo, index) => (
             <SortableExerciseCard key={exo.id} id={exo.id}>
-              <div className="relative bg-card dark:bg-zinc-900/40 rounded-xl border shadow-sm p-4 transition-all">
-                <div className="flex justify-between items-start mb-4 border-b pb-3 border-border/40">
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-3">
-                      <span className="flex items-center justify-center h-6 w-6 rounded bg-primary/10 text-primary text-xs font-bold font-mono">
-                        {String(index + 1).padStart(2, "0")}
-                      </span>
-                      <h3 className="font-bold text-lg leading-tight text-card-foreground">
-                        {exo.name}
-                      </h3>
-                    </div>
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold pl-9">
+              <div className="relative bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm overflow-hidden transition-all">
+                <div className="flex items-center h-14 px-3 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-100/50 dark:bg-zinc-900/50">
+                  <div className="shrink-0 w-8 flex items-center justify-start cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-foreground"></div>
+                  <div className="shrink-0 w-8 flex justify-center mr-2">
+                    <span className="flex items-center justify-center h-7 w-7 rounded-md bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 text-[11px] font-bold font-mono border border-zinc-200 dark:border-zinc-700 shadow-sm">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                  </div>
+                  <div className="flex flex-col flex-1 min-w-0 justify-center">
+                    <h3 className="font-bold text-sm leading-tight text-foreground truncate pr-2">
+                      {exo.name}
+                    </h3>
+                    <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold mt-0.5 truncate">
                       {exo.targetMuscle}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1 opacity-60 hover:opacity-100">
-                    {isPlanning && (
-                      <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab p-1" />
-                    )}
+                  <div className="shrink-0 w-8 flex justify-end">
                     <RemoveExerciseButton id={exo.id} />
                   </div>
                 </div>
-
                 {!isPlanning && (
-                  <div className="mt-2">
+                  <div className="p-3 bg-white dark:bg-black/20">
                     <SetLogger
                       workoutExerciseId={exo.id}
                       initialSets={exo.sets}

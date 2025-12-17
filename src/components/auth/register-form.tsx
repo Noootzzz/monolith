@@ -51,6 +51,7 @@ export function RegisterForm() {
               ...prev,
               email: "Cet email est déjà utilisé.",
             }));
+            toast.error("Erreur lors de l'inscription");
           } else if (msg.includes("password") || msg.includes("short")) {
             setErrors((prev) => ({
               ...prev,
@@ -64,8 +65,8 @@ export function RegisterForm() {
         },
         onSuccess: () => {
           setLoading(false);
-          toast.success("Compte créé avec succès !");
           router.push("/dashboard");
+          toast.success("Compte créé avec succès !");
         },
       },
     });

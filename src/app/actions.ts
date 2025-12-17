@@ -91,20 +91,42 @@ export async function updateExercise(exerciseId: number, formData: FormData) {
 }
 
 export async function createEmptyWorkout() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error("Unauthorized");
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) {
+    throw new Error("Non autorisé");
+  }
+
+  const now = new Date();
+
+  const dayName = new Intl.DateTimeFormat("fr-FR", { weekday: "long" }).format(
+    now
+  );
+  const capitalizedDay = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+
+  const time = new Intl.DateTimeFormat("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
+    .format(now)
+    .replace(":", "h");
+
+  const workoutName = `${capitalizedDay} ${time}`;
 
   const [newWorkout] = await db
     .insert(workouts)
     .values({
       userId: session.user.id,
-      name: "Nouvelle Séance",
+      name: workoutName,
       status: "PLANNING",
       startTime: null,
     })
-    .returning({ id: workouts.id });
+    .returning();
 
-  return newWorkout.id;
+  redirect(`/workout/${newWorkout.id}`);
 }
 
 export async function startWorkoutFromTemplate(templateId: number) {

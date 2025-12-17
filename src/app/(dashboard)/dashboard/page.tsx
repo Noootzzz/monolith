@@ -71,7 +71,8 @@ export default async function DashboardPage() {
 
   const totalSessions = Number(stats[0]?.count || 0);
   const totalSeconds = Number(stats[0]?.totalDuration || 0);
-  const totalHours = Math.round(totalSeconds / 3600);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
 
   const volumeStats = await db
     .select({ count: sql<number>`count(*)` })
@@ -134,16 +135,6 @@ export default async function DashboardPage() {
             Aperçu de vos performances et de votre régularité.
           </p>
         </div>
-        <div className="flex items-center space-x-2">
-          <Link href="/workout/new">
-            <Button
-              size="lg"
-              className="shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all"
-            >
-              <Plus className="mr-2 h-4 w-4" /> Nouvelle Séance
-            </Button>
-          </Link>
-        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -164,7 +155,10 @@ export default async function DashboardPage() {
             <Timer className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalHours}h</div>
+            <div className="text-2xl font-bold">
+              {hours}h{" "}
+              <span className="text-lg text-muted-foreground">{minutes}m</span>
+            </div>
             <p className="text-xs text-muted-foreground">À la salle</p>
           </CardContent>
         </Card>

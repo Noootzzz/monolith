@@ -129,6 +129,8 @@ export default async function ActiveWorkoutPage({
             workoutId={workoutId}
             workoutName={workout.name}
             startTime={workout.startTime}
+            status={workout.status}
+            duration={workout.duration}
           />
         )}
 

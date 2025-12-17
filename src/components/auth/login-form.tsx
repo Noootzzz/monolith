@@ -39,22 +39,20 @@ export function LoginForm() {
             serverMessage.includes("password") ||
             serverMessage.includes("credential")
           ) {
-
             setErrors((prev) => ({
               ...prev,
               password: "Mot de passe incorrect.",
             }));
+            toast.error("Échec de la connexion");
           } else if (
             serverMessage.includes("User") ||
             serverMessage.includes("email")
           ) {
-
             setErrors((prev) => ({
               ...prev,
               email: "Aucun compte associé à cet email.",
             }));
           } else {
-
             setErrors((prev) => ({
               ...prev,
               global: "Une erreur est survenue.",
@@ -64,8 +62,8 @@ export function LoginForm() {
         },
         onSuccess: () => {
           setLoading(false);
-          toast.success("Ravi de vous revoir !");
           router.push("/dashboard");
+          toast.success("Bon retour parmi nous !");
         },
       },
     });

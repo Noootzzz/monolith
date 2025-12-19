@@ -16,9 +16,14 @@ interface SetRowProps {
     isCompleted: boolean | null;
   };
   trackWeight?: boolean;
+  isPlanning?: boolean; // <-- Nouvelle prop pour savoir si on est en prépa
 }
 
-export function SetRow({ set, trackWeight = true }: SetRowProps) {
+export function SetRow({
+  set,
+  trackWeight = true,
+  isPlanning = false,
+}: SetRowProps) {
   const formatValue = (val: string | number) => {
     if (val === 0 || val === "0") return "";
     return val.toString();
@@ -28,6 +33,8 @@ export function SetRow({ set, trackWeight = true }: SetRowProps) {
   const [reps, setReps] = useState(formatValue(set.reps));
 
   const [completed, setCompleted] = useState(!!set.isCompleted);
+
+  // On récupère le déclencheur du repos depuis le contexte
   const { startRest } = useWorkoutSession();
 
   const handleBlur = async (field: "weight" | "reps", value: string) => {
@@ -39,12 +46,21 @@ export function SetRow({ set, trackWeight = true }: SetRowProps) {
   };
 
   const toggleComplete = async () => {
+    // On ne peut pas valider si on est en planning (sécurité supplémentaire)
+    if (isPlanning) return;
+
     const newState = !completed;
     setCompleted(newState);
-    if (newState) startRest(90);
+
+    // SI on vient de valider ET qu'on n'est pas en planning -> Repos !
+    if (newState) {
+      startRest(90); // 90 secondes par défaut, ou une valeur venant de l'exercice
+    }
+
     try {
       await updateSet(set.id, "isCompleted", newState);
     } catch {
+      // Rollback si erreur serveur
       setCompleted(!newState);
     }
   };
@@ -56,10 +72,12 @@ export function SetRow({ set, trackWeight = true }: SetRowProps) {
         completed && "opacity-50 grayscale"
       )}
     >
+      {/* Numéro de la série */}
       <div className="w-6 text-center text-xs font-bold text-muted-foreground/50 shrink-0">
         #{set.index}
       </div>
 
+      {/* Champs de saisie (Toujours actifs pour modifier ses prévisions) */}
       <div className="flex-1 flex items-center gap-3">
         {trackWeight && (
           <>
@@ -97,22 +115,30 @@ export function SetRow({ set, trackWeight = true }: SetRowProps) {
         </div>
       </div>
 
-      <button
-        onClick={toggleComplete}
-        className={cn(
-          "h-12 w-14 rounded-lg flex items-center justify-center transition-all shrink-0 active:scale-95 shadow-sm",
-          completed
-            ? "bg-green-500 text-white shadow-green-500/20"
-            : "bg-zinc-100 dark:bg-zinc-800 text-zinc-300 dark:text-zinc-600 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-        )}
-      >
-        <Check
+      {/* Bouton Valider (Caché en mode Planning) */}
+      {!isPlanning ? (
+        <button
+          onClick={toggleComplete}
           className={cn(
-            "h-7 w-7 stroke-[3]",
-            completed ? "scale-100" : "scale-90"
+            "h-12 w-14 rounded-lg flex items-center justify-center transition-all shrink-0 active:scale-95 shadow-sm",
+            completed
+              ? "bg-green-500 text-white shadow-green-500/20"
+              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-300 dark:text-zinc-600 hover:bg-zinc-200 dark:hover:bg-zinc-700"
           )}
-        />
-      </button>
+        >
+          <Check
+            className={cn(
+              "h-7 w-7 stroke-[3]",
+              completed ? "scale-100" : "scale-90"
+            )}
+          />
+        </button>
+      ) : (
+        // Placeholder visuel pour garder l'alignement quand le bouton est caché
+        <div className="w-14 h-12 flex items-center justify-center opacity-10">
+          <div className="h-1.5 w-1.5 rounded-full bg-current" />
+        </div>
+      )}
     </div>
   );
 }

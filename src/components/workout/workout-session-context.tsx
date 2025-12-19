@@ -1,130 +1,104 @@
 "use client";
 
-import React, {
+import {
   createContext,
   useContext,
   useState,
   useEffect,
   ReactNode,
 } from "react";
-import { RestTimerOverlay } from "./rest-timer-overlay";
+import { toast } from "sonner";
 
 interface WorkoutSessionContextType {
+  // Timer Global de la séance
+  elapsedTime: number;
+  isSessionActive: boolean;
+
+  // Timer de Repos (Rest Timer)
   isResting: boolean;
-  restDuration: number;
-  targetRestTime: number;
-  startRest: (duration?: number) => void;
-  cancelRest: () => void;
-  addTime: (seconds: number) => void;
+  restTimeLeft: number;
+  startRest: (duration: number) => void;
+  skipRest: () => void;
+  addRestTime: (seconds: number) => void;
 }
 
-const WorkoutSessionContext = createContext<
-  WorkoutSessionContextType | undefined
->(undefined);
-
-const STORAGE_KEY = "monolith_rest_end_time";
+const WorkoutSessionContext = createContext<WorkoutSessionContextType | null>(
+  null
+);
 
 export function WorkoutSessionProvider({ children }: { children: ReactNode }) {
+  // --- ÉTAT SÉANCE ---
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [isSessionActive, setIsSessionActive] = useState(true); // Tu pourras le lier au status DB plus tard
+
+  // --- ÉTAT REPOS ---
   const [isResting, setIsResting] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState(0);
-  const [targetRestTime, setTargetRestTime] = useState(90);
+  const [restTimeLeft, setRestTimeLeft] = useState(0);
 
+  // Effet pour le Timer GLOBAL (durée totale)
   useEffect(() => {
-    const savedEndTime = localStorage.getItem(STORAGE_KEY);
-    if (savedEndTime) {
-      const endTime = parseInt(savedEndTime, 10);
-      const now = Date.now();
-      const diff = Math.ceil((endTime - now) / 1000);
+    if (!isSessionActive) return;
+    const interval = setInterval(() => setElapsedTime((t) => t + 1), 1000);
+    return () => clearInterval(interval);
+  }, [isSessionActive]);
 
-      if (diff > 0) {
-        setTimeRemaining(diff);
-        setIsResting(true);
-      } else {
-        localStorage.removeItem(STORAGE_KEY);
+  // Effet pour le Timer DE REPOS (Décompte)
+  useEffect(() => {
+    if (!isResting || restTimeLeft <= 0) {
+      if (isResting && restTimeLeft <= 0) {
+        // Fin du repos automatique
         setIsResting(false);
+        toast.info("Repos terminé ! Au boulot 💪", { duration: 3000 });
+        // Ici on pourrait jouer un son
       }
+      return;
     }
-  }, []);
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-
-    if (isResting) {
-      interval = setInterval(() => {
-        const savedEndTime = localStorage.getItem(STORAGE_KEY);
-
-        if (savedEndTime) {
-          const endTime = parseInt(savedEndTime, 10);
-          const now = Date.now();
-          const diff = Math.ceil((endTime - now) / 1000);
-
-          if (diff <= 0) {
-            setIsResting(false);
-            setTimeRemaining(0);
-            localStorage.removeItem(STORAGE_KEY);
-          } else {
-            setTimeRemaining(diff);
-          }
-        } else {
-          setIsResting(false);
-        }
-      }, 1000);
-    }
+    const interval = setInterval(() => {
+      setRestTimeLeft((prev) => prev - 1);
+    }, 1000);
 
     return () => clearInterval(interval);
-  }, [isResting]);
+  }, [isResting, restTimeLeft]);
 
-  const startRest = (duration: number = 90) => {
-    const now = Date.now();
-    const endTime = now + duration * 1000;
+  // --- ACTIONS ---
 
-    localStorage.setItem(STORAGE_KEY, endTime.toString());
-
-    setTargetRestTime(duration);
-    setTimeRemaining(duration);
+  const startRest = (duration: number) => {
+    setRestTimeLeft(duration);
     setIsResting(true);
   };
 
-  const cancelRest = () => {
-    localStorage.removeItem(STORAGE_KEY);
+  const skipRest = () => {
     setIsResting(false);
-    setTimeRemaining(0);
+    setRestTimeLeft(0);
   };
 
-  const addTime = (seconds: number) => {
-    const savedEndTime = localStorage.getItem(STORAGE_KEY);
-    if (savedEndTime) {
-      const currentEndTime = parseInt(savedEndTime, 10);
-      const newEndTime = currentEndTime + seconds * 1000;
-
-      localStorage.setItem(STORAGE_KEY, newEndTime.toString());
-
-      setTimeRemaining((prev) => prev + seconds);
-    }
+  const addRestTime = (seconds: number) => {
+    setRestTimeLeft((prev) => prev + seconds);
   };
 
   return (
     <WorkoutSessionContext.Provider
       value={{
+        elapsedTime,
+        isSessionActive,
         isResting,
-        restDuration: timeRemaining,
-        targetRestTime,
+        restTimeLeft,
         startRest,
-        cancelRest,
-        addTime,
+        skipRest,
+        addRestTime,
       }}
     >
       {children}
-      <RestTimerOverlay />
     </WorkoutSessionContext.Provider>
   );
 }
 
-export const useWorkoutSession = () => {
+export function useWorkoutSession() {
   const context = useContext(WorkoutSessionContext);
   if (!context)
     throw new Error(
       "useWorkoutSession must be used within a WorkoutSessionProvider"
     );
   return context;
-};
+}

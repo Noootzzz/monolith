@@ -90,6 +90,28 @@ export async function updateExercise(exerciseId: number, formData: FormData) {
   revalidatePath("/exercises");
 }
 
+export const toggleExerciseFavorite = async (exerciseId: number) => {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) throw new Error("Unauthorized");
+
+  const exercise = await db.query.exercises.findFirst({
+    where: eq(exercises.id, exerciseId),
+  });
+
+  if (!exercise) throw new Error("Exercise not found");
+
+  await db
+    .update(exercises)
+    .set({ isFavorite: !exercise.isFavorite })
+    .where(eq(exercises.id, exerciseId));
+
+  revalidatePath("/exercises");
+  revalidatePath("/workout/[id]", "page");
+};
+
 export async function createEmptyWorkout() {
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -127,6 +149,23 @@ export async function createEmptyWorkout() {
     .returning();
 
   redirect(`/workout/${newWorkout.id}`);
+}
+
+export async function startWorkout(workoutId: number) {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  if (!session) throw new Error("Unauthorized");
+
+  await db
+    .update(workouts)
+    .set({
+      status: "IN_PROGRESS",
+      startTime: new Date(),
+    })
+    .where(eq(workouts.id, workoutId));
+
+  revalidatePath(`/workout/${workoutId}`, "page");
 }
 
 export async function startWorkoutFromTemplate(templateId: number) {
@@ -265,7 +304,7 @@ export async function removeExerciseFromWorkout(workoutExerciseId: number) {
     .delete(workoutExercises)
     .where(eq(workoutExercises.id, workoutExerciseId));
 
-  revalidatePath("/workout/[id]");
+  revalidatePath("/workout/[id]", "page");
 }
 
 export async function moveExercise(
@@ -333,6 +372,7 @@ export async function reorderExercises(
   revalidatePath("/workout/[id]", "page");
 }
 
+// --- CORRECTION ICI : Remplacement de index par orderIndex ---
 export async function addSet(workoutExerciseId: number) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) throw new Error("Unauthorized");
@@ -341,7 +381,7 @@ export async function addSet(workoutExerciseId: number) {
     .select()
     .from(sets)
     .where(eq(sets.workoutExerciseId, workoutExerciseId))
-    .orderBy(asc(sets.index));
+    .orderBy(asc(sets.orderIndex)); // <-- CORRIGÉ : orderIndex
 
   const nextIndex = existingSets.length + 1;
   const lastSet = existingSets[existingSets.length - 1];
@@ -350,7 +390,7 @@ export async function addSet(workoutExerciseId: number) {
 
   await db.insert(sets).values({
     workoutExerciseId,
-    index: nextIndex,
+    orderIndex: nextIndex, // <-- CORRIGÉ : orderIndex
     weight: defaultWeight,
     reps: defaultReps,
     isCompleted: false,
@@ -373,8 +413,15 @@ export async function updateSet(
     if (value === "" || value === undefined || value === null) {
       valueToUpdate = null as any;
     } else {
+      // Si c'est le poids, on garde le string si possible, sinon number pour reps/rpe
+      // Dans le doute, on convertit en number ici car c'était votre logique existante,
+      // mais attention si weight est "text" en DB.
       const parsed = Number(value);
       valueToUpdate = isNaN(parsed) ? (null as any) : parsed;
+      // Pour le poids qui est du TEXT en DB, on le reconvertit en string
+      if (field === "weight") {
+        valueToUpdate = valueToUpdate.toString();
+      }
     }
   }
 
@@ -391,7 +438,7 @@ export async function removeSet(setId: number) {
   if (!session) throw new Error("Unauthorized");
 
   await db.delete(sets).where(eq(sets.id, setId));
-  revalidatePath("/workout/[id]");
+  revalidatePath("/workout/[id]", "page");
 }
 
 export async function saveAsTemplate(workoutId: number, templateName: string) {
@@ -447,19 +494,13 @@ export async function createWorkout(name: string = "Séance du jour") {
   if (!session) throw new Error("Unauthorized");
 
   const [newWorkout] = await db
-
     .insert(workouts)
-
     .values({
       userId: session.user.id,
-
       name: name,
-
-      status: "DRAFT",
-
+      status: "PLANNING",
       startTime: new Date(),
     })
-
     .returning({ id: workouts.id });
 
   return newWorkout.id;

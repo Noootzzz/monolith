@@ -1,38 +1,32 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { createWorkout } from "@/app/actions";
+import { startWorkout } from "@/app/actions";
 import { toast } from "sonner";
 
-export function StartWorkoutButton() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-
+export function StartWorkoutButton({ workoutId }: { workoutId: number }) {
   const handleStart = async () => {
-    setLoading(true);
     try {
-      const workoutId = await createWorkout();
-      toast.success("Séance démarrée !");
-
-      router.push(`/workout/${workoutId}`);
-    } catch (error) {
-      toast.error("Impossible de démarrer la séance.");
-      setLoading(false);
+      await startWorkout(workoutId);
+      toast.success("Séance démarrée ! Bon courage 🔥");
+    } catch {
+      toast.error("Erreur au démarrage");
     }
   };
 
   return (
-    <Button
-      size="lg"
-      className="w-full md:w-auto gap-2 text-lg py-6"
-      onClick={handleStart}
-      disabled={loading}
-    >
-      <Play className="fill-current h-5 w-5" />
-      {loading ? "Création..." : "Démarrer une séance"}
-    </Button>
+    <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-lg border-t z-50 safe-area-bottom">
+      <div className="max-w-md mx-auto">
+        <Button
+          className="w-full h-14 text-lg font-bold uppercase tracking-wide shadow-xl shadow-primary/20 animate-in slide-in-from-bottom-4"
+          size="lg"
+          onClick={handleStart}
+        >
+          <Play className="h-6 w-6 mr-2 fill-current" />
+          Commencer la séance
+        </Button>
+      </div>
+    </div>
   );
 }

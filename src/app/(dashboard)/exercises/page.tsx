@@ -4,10 +4,9 @@ import { eq, or, asc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { Dumbbell } from "lucide-react";
 import { DashboardHeader } from "@/components/ui/dashboard-header";
-import { EmptyState } from "@/components/ui/empty-state";
 import { AddExerciseDialog } from "@/components/exercises/add-exercise-dialog";
+// On réutilise votre browser (qui gère les filtres)
 import { ExerciseBrowser } from "@/components/exercises/exercise-browser";
 
 export default async function ExercisesPage() {
@@ -18,7 +17,14 @@ export default async function ExercisesPage() {
   if (!session) redirect("/login");
 
   const allExercises = await db
-    .select()
+    .select({
+      id: exercises.id,
+      name: exercises.name,
+      targetMuscle: exercises.targetMuscle,
+      isSystem: exercises.isSystem,
+      isFavorite: exercises.isFavorite,
+      instructions: exercises.instructions,
+    })
     .from(exercises)
     .where(
       or(eq(exercises.isSystem, true), eq(exercises.userId, session.user.id))
@@ -33,16 +39,7 @@ export default async function ExercisesPage() {
       >
         <AddExerciseDialog />
       </DashboardHeader>
-
-      {allExercises.length === 0 ? (
-        <EmptyState
-          icon={Dumbbell}
-          title="Aucun exercice"
-          description="Votre bibliothèque est vide."
-        />
-      ) : (
-        <ExerciseBrowser initialData={allExercises} />
-      )}
+      <ExerciseBrowser initialData={allExercises} />
     </>
   );
 }

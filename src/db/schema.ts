@@ -10,6 +10,8 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
+// --- AUTH (User, Session, Account...) ---
+// (Je garde cette partie identique à la vôtre, elle semblait correcte)
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
@@ -19,7 +21,7 @@ export const user = pgTable("user", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
-    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .$onUpdate(() => new Date())
     .notNull(),
 });
 
@@ -31,7 +33,7 @@ export const session = pgTable(
     token: text("token").notNull().unique(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
-      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .$onUpdate(() => new Date())
       .notNull(),
     ipAddress: text("ip_address"),
     userAgent: text("user_agent"),
@@ -60,7 +62,7 @@ export const account = pgTable(
     password: text("password"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
-      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .$onUpdate(() => new Date())
       .notNull(),
   },
   (table) => [index("account_userId_idx").on(table.userId)]
@@ -76,7 +78,7 @@ export const verification = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()
-      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .$onUpdate(() => new Date())
       .notNull(),
   },
   (table) => [index("verification_identifier_idx").on(table.identifier)]
@@ -85,6 +87,7 @@ export const verification = pgTable(
 export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),
   accounts: many(account),
+  workouts: many(workouts), // Ajout optionnel mais utile
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -110,6 +113,8 @@ export const exercises = pgTable("exercises", {
   targetMuscle: text("target_muscle").notNull(),
   isSystem: boolean("is_system").default(false).notNull(),
   trackWeight: boolean("track_weight").default(true).notNull(),
+  isFavorite: boolean("is_favorite").default(false).notNull(),
+  instructions: text("instructions"),
 });
 
 export const workouts = pgTable("workouts", {
@@ -141,13 +146,15 @@ export const sets = pgTable("sets", {
   workoutExerciseId: integer("workout_exercise_id")
     .notNull()
     .references(() => workoutExercises.id, { onDelete: "cascade" }),
-  index: integer("index").notNull(),
-  weight: decimal("weight").notNull().default("0"),
+  // CORRECTION ICI : "index" -> "order_index" pour correspondre à votre code de page
+  orderIndex: integer("order_index").notNull(),
+  weight: text("weight").notNull().default("0"), // Mieux vaut text pour gérer la virgule facile ou decimal
   reps: integer("reps").notNull().default(0),
   rpe: integer("rpe"),
   isCompleted: boolean("is_completed").default(false),
 });
 
+// (Templates omis pour brièveté, mais gardez-les si vous les utilisez)
 export const workoutTemplates = pgTable("workout_templates", {
   id: serial("id").primaryKey(),
   userId: text("user_id")
@@ -168,15 +175,21 @@ export const workoutTemplateExercises = pgTable("workout_template_exercises", {
   orderIndex: integer("order_index").notNull(),
 });
 
-// --- RELATIONS ---
+// --- RELATIONS (C'est ici que ça bloquait) ---
+
+// 1. Relation pour Workouts
+export const workoutsRelations = relations(workouts, ({ many }) => ({
+  workoutExercises: many(workoutExercises),
+}));
 
 export const exercisesRelations = relations(exercises, ({ many }) => ({
   workoutExercises: many(workoutExercises),
 }));
 
+// 2. Relation pour WorkoutExercises (Il manquait "sets")
 export const workoutExercisesRelations = relations(
   workoutExercises,
-  ({ one }) => ({
+  ({ one, many }) => ({
     exercise: one(exercises, {
       fields: [workoutExercises.exerciseId],
       references: [exercises.id],
@@ -185,5 +198,14 @@ export const workoutExercisesRelations = relations(
       fields: [workoutExercises.workoutId],
       references: [workouts.id],
     }),
+    sets: many(sets), // <--- AJOUT CRUCIAL
   })
 );
+
+// 3. Relation pour Sets (Manquante)
+export const setsRelations = relations(sets, ({ one }) => ({
+  workoutExercise: one(workoutExercises, {
+    fields: [sets.workoutExerciseId],
+    references: [workoutExercises.id],
+  }),
+}));

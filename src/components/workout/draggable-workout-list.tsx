@@ -1,104 +1,95 @@
 "use client";
 
-import { useState, useEffect, useId, useTransition } from "react";
 import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-  TouchSensor,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-// On importe notre nouveau composant
+  DragDropContext,
+  Droppable,
+  Draggable,
+  DropResult,
+} from "@hello-pangea/dnd";
 import { WorkoutExerciseCard } from "./workout-exercise-card";
 import { reorderExercises } from "@/app/actions";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-
-interface WorkoutExerciseWithSets {
-  id: number;
-  name: string;
-  targetMuscle: string;
-  trackWeight: boolean;
-  sets: any[];
-}
+import { useState } from "react"; // important pour l'optimistic UI
 
 interface DraggableWorkoutListProps {
-  items: WorkoutExerciseWithSets[];
-  isPlanning: boolean;
+  items: any[];
+  isPlanning: boolean; // <-- NOUVELLE PROP
 }
 
 export function DraggableWorkoutList({
-  items: initialItems,
+  items,
   isPlanning,
 }: DraggableWorkoutListProps) {
-  const [items, setItems] = useState(initialItems);
-  const [isPending, startTransition] = useTransition();
-  const dndContextId = useId();
+  // On utilise un état local pour que le Drag&Drop soit instantané visuellement
+  const [exercises, setExercises] = useState(items);
 
-  useEffect(() => {
-    setItems(initialItems);
-  }, [initialItems]);
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(TouchSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
+  // Met à jour l'état local si les props changent (ex: ajout d'un exo)
+  if (JSON.stringify(items) !== JSON.stringify(exercises)) {
+    setExercises(items);
+  }
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
-      const oldIndex = items.findIndex((item) => item.id === active.id);
-      const newIndex = items.findIndex((item) => item.id === over.id);
-      const newItems = arrayMove(items, oldIndex, newIndex);
-      setItems(newItems);
-      const updates = newItems.map((item, index) => ({
-        id: item.id,
-        orderIndex: index,
-      }));
-      startTransition(async () => {
-        try {
-          await reorderExercises(updates);
-        } catch (error) {
-          toast.error("Erreur");
-          setItems(items);
-        }
-      });
+  const onDragEnd = async (result: DropResult) => {
+    if (!result.destination) return;
+
+    const sourceIndex = result.source.index;
+    const destinationIndex = result.destination.index;
+
+    if (sourceIndex === destinationIndex) return;
+
+    // 1. Mise à jour Optimiste (Instantanée)
+    const newExercises = Array.from(exercises);
+    const [moved] = newExercises.splice(sourceIndex, 1);
+    newExercises.splice(destinationIndex, 0, moved);
+    setExercises(newExercises);
+
+    // 2. Sauvegarde Serveur
+    const updates = newExercises.map((exo, index) => ({
+      id: exo.id,
+      orderIndex: index,
+    }));
+
+    try {
+      await reorderExercises(updates);
+    } catch {
+      toast.error("Erreur lors de la réorganisation");
+      setExercises(items); // Rollback
     }
   };
 
   return (
-    <DndContext
-      id={dndContextId}
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragEnd={handleDragEnd}
-    >
-      <SortableContext
-        items={items.map((i) => i.id)}
-        strategy={verticalListSortingStrategy}
-      >
-        <div className={cn("space-y-4", isPending && "opacity-70")}>
-          {items.map((exo, index) => (
-            <WorkoutExerciseCard
-              key={exo.id}
-              exo={exo}
-              index={index}
-              isPlanning={isPlanning}
-            />
-          ))}
-        </div>
-      </SortableContext>
-    </DndContext>
+    <DragDropContext onDragEnd={onDragEnd}>
+      <Droppable droppableId="workout-list">
+        {(provided) => (
+          <div
+            {...provided.droppableProps}
+            ref={provided.innerRef}
+            className="space-y-4"
+          >
+            {exercises.map((item, index) => (
+              <Draggable
+                key={item.id}
+                draggableId={item.id.toString()}
+                index={index}
+                isDragDisabled={!isPlanning} // On ne bouge plus les exos une fois la séance lancée (optionnel)
+              >
+                {(provided) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.draggableProps}
+                    {...provided.dragHandleProps}
+                  >
+                    <WorkoutExerciseCard
+                      item={item}
+                      isPlanning={isPlanning} // <-- On transmet l'info
+                    />
+                  </div>
+                )}
+              </Draggable>
+            ))}
+            {provided.placeholder}
+          </div>
+        )}
+      </Droppable>
+    </DragDropContext>
   );
 }

@@ -77,7 +77,6 @@ export function WorkoutHeader({
         router.push("/dashboard");
         return "Séance terminée ! Bravo 💪";
       },
-      error: "Erreur",
     });
   };
 

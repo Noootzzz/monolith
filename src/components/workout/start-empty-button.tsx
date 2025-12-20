@@ -13,14 +13,8 @@ export function StartEmptyButton() {
 
   const handleStart = async () => {
     setLoading(true);
-    try {
-      const workoutId = await createEmptyWorkout();
-      // On garde loading true pendant la redirection pour éviter le double-clic
-      router.push(`/workout/${workoutId}`);
-    } catch (error) {
-      toast.error("Impossible de créer la séance.");
-      setLoading(false);
-    }
+    const workoutId = await createEmptyWorkout();
+    router.push(`/workout/${workoutId}`);
   };
 
   return (

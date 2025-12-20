@@ -2,17 +2,18 @@
 
 import { useWorkoutSession } from "./workout-session-context";
 import { Button } from "@/components/ui/button";
-import { X, Plus, Minus, SkipForward } from "lucide-react";
+import { X, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function RestTimerOverlay() {
   const { isResting, restTimeLeft, skipRest, addRestTime } =
     useWorkoutSession();
 
-  // Si on ne se repose pas, on n'affiche rien (c'est caché)
   if (!isResting) return null;
 
-  // Formatage mm:ss
+  const safeTime =
+    typeof restTimeLeft === "number" && !isNaN(restTimeLeft) ? restTimeLeft : 0;
+
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
@@ -20,77 +21,77 @@ export function RestTimerOverlay() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-end sm:justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
-      {/* Zone cliquable pour fermer si on veut (optionnel) */}
+    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-end sm:justify-center bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+      {/* Zone de clic pour fermer */}
       <div className="absolute inset-0" onClick={skipRest} />
 
-      {/* Carte du Timer */}
+      {/* Carte style "App" */}
       <div
-        className="relative w-full max-w-md bg-zinc-900 border-t sm:border border-zinc-800 p-6 pb-safe sm:rounded-xl shadow-2xl flex flex-col items-center gap-6 animate-in slide-in-from-bottom-10 duration-300"
-        onClick={(e) => e.stopPropagation()} // Empêche de fermer si on clique sur la carte
+        className="relative w-full sm:max-w-md bg-card text-card-foreground border-t sm:border shadow-2xl p-6 pb-10 sm:pb-6 sm:rounded-xl flex flex-col items-center gap-6 animate-in slide-in-from-bottom-10 duration-300"
+        onClick={(e) => e.stopPropagation()}
       >
         {/* En-tête */}
-        <div className="flex items-center justify-between w-full">
-          <span className="text-sm font-medium text-muted-foreground uppercase tracking-widest">
-            Repos
-          </span>
-          <button
-            onClick={skipRest}
-            className="p-2 -mr-2 text-muted-foreground hover:text-white transition-colors"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Le GROS Compteur */}
-        <div className="flex flex-col items-center">
-          <div
-            className={cn(
-              "text-7xl font-black font-mono tracking-tighter tabular-nums",
-              restTimeLeft <= 5 ? "text-red-500 animate-pulse" : "text-white"
-            )}
-          >
-            {formatTime(restTimeLeft)}
+        <div className="w-full flex items-center justify-between">
+          <div className="flex flex-col">
+            <span className="text-sm font-semibold tracking-tight">
+              Temps de repos
+            </span>
+            <span className="text-xs text-muted-foreground">
+              Récupération active
+            </span>
           </div>
-          <p className="text-sm text-muted-foreground mt-2">
-            Récupérez votre souffle
-          </p>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={skipRest}
+            className="h-8 w-8 rounded-full -mr-2 text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </div>
 
-        {/* Boutons de contrôle */}
-        <div className="flex items-center gap-4 w-full">
+        {/* Chrono */}
+        <div className="py-2">
+          <div className="text-8xl font-bold tracking-tighter tabular-nums text-foreground select-none">
+            {formatTime(safeTime)}
+          </div>
+        </div>
+
+        {/* Contrôles avec valeurs explicites */}
+        <div className="grid grid-cols-4 gap-3 w-full h-14">
+          {/* Bouton -10s */}
           <Button
             variant="outline"
-            size="icon"
-            className="h-14 w-14 rounded-full border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
+            className="h-full rounded-lg border-input bg-background hover:bg-accent hover:text-accent-foreground col-span-1 text-base font-bold tabular-nums"
             onClick={() => addRestTime(-10)}
           >
-            <Minus className="h-6 w-6" />
+            -10
           </Button>
 
+          {/* Bouton Principal */}
           <Button
-            className="flex-1 h-14 rounded-full text-lg font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20"
+            className="h-full rounded-lg text-lg font-bold col-span-2 shadow-sm"
             onClick={skipRest}
           >
-            <SkipForward className="h-6 w-6 mr-2 fill-current" />
             Reprendre
+            <ChevronRight className="h-5 w-5 ml-1 opacity-70" />
           </Button>
 
+          {/* Bouton +30s */}
           <Button
             variant="outline"
-            size="icon"
-            className="h-14 w-14 rounded-full border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
+            className="h-full rounded-lg border-input bg-background hover:bg-accent hover:text-accent-foreground col-span-1 text-base font-bold tabular-nums"
             onClick={() => addRestTime(30)}
           >
-            <Plus className="h-6 w-6" />
+            +30
           </Button>
         </div>
 
-        {/* Barre de progression visuelle */}
-        <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden mt-2">
+        {/* Barre de progression discrète */}
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-muted">
           <div
             className="h-full bg-primary transition-all duration-1000 ease-linear"
-            style={{ width: `${Math.min(100, (restTimeLeft / 90) * 100)}%` }} // Base 90s arbitraire pour la barre
+            style={{ width: `${Math.min(100, (safeTime / 90) * 100)}%` }}
           />
         </div>
       </div>

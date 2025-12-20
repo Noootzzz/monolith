@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -16,13 +16,15 @@ interface SetRowProps {
     isCompleted: boolean | null;
   };
   trackWeight?: boolean;
-  isPlanning?: boolean; // <-- Nouvelle prop pour savoir si on est en prépa
+  isPlanning?: boolean;
+  restTime?: number;
 }
 
 export function SetRow({
   set,
   trackWeight = true,
   isPlanning = false,
+  restTime = 90,
 }: SetRowProps) {
   const formatValue = (val: string | number) => {
     if (val === 0 || val === "0") return "";
@@ -31,11 +33,15 @@ export function SetRow({
 
   const [weight, setWeight] = useState(formatValue(set.weight));
   const [reps, setReps] = useState(formatValue(set.reps));
-
   const [completed, setCompleted] = useState(!!set.isCompleted);
 
-  // On récupère le déclencheur du repos depuis le contexte
   const { startRest } = useWorkoutSession();
+
+  useEffect(() => {
+    setWeight(formatValue(set.weight));
+    setReps(formatValue(set.reps));
+    setCompleted(!!set.isCompleted);
+  }, [set]);
 
   const handleBlur = async (field: "weight" | "reps", value: string) => {
     if (field === "weight" && value === set.weight) return;
@@ -46,21 +52,23 @@ export function SetRow({
   };
 
   const toggleComplete = async () => {
-    // On ne peut pas valider si on est en planning (sécurité supplémentaire)
     if (isPlanning) return;
 
     const newState = !completed;
     setCompleted(newState);
 
-    // SI on vient de valider ET qu'on n'est pas en planning -> Repos !
+    // Vibration courte et sèche (très discret)
+    if (typeof navigator !== "undefined" && navigator.vibrate) {
+      navigator.vibrate(10);
+    }
+
     if (newState) {
-      startRest(90); // 90 secondes par défaut, ou une valeur venant de l'exercice
+      startRest(restTime);
     }
 
     try {
       await updateSet(set.id, "isCompleted", newState);
     } catch {
-      // Rollback si erreur serveur
       setCompleted(!newState);
     }
   };
@@ -68,74 +76,97 @@ export function SetRow({
   return (
     <div
       className={cn(
-        "flex items-center gap-3 mb-3 last:mb-0 transition-all duration-300",
-        completed && "opacity-50 grayscale"
+        "flex items-center gap-2 mb-2 last:mb-0 transition-opacity duration-200",
+        // Si validé, on réduit l'opacité pour se concentrer sur la suite
+        completed ? "opacity-60" : "opacity-100"
       )}
     >
-      {/* Numéro de la série */}
-      <div className="w-6 text-center text-xs font-bold text-muted-foreground/50 shrink-0">
+      {/* Numéro de série (Discret) */}
+      <div
+        className={cn(
+          "w-6 text-center text-xs font-bold shrink-0 transition-colors",
+          completed ? "text-emerald-600" : "text-muted-foreground/50"
+        )}
+      >
         #{set.index}
       </div>
 
-      {/* Champs de saisie (Toujours actifs pour modifier ses prévisions) */}
-      <div className="flex-1 flex items-center gap-3">
+      {/* INPUTS */}
+      <div className="flex-1 flex items-center gap-2">
         {trackWeight && (
-          <>
-            <div className="relative flex-1 group">
-              <Input
-                type="number"
-                inputMode="decimal"
-                value={weight}
-                onChange={(e) => setWeight(e.target.value)}
-                onBlur={(e) => handleBlur("weight", e.target.value)}
-                className="h-12 text-lg font-bold text-center bg-zinc-100 dark:bg-zinc-950 border-transparent dark:border-zinc-800 dark:border focus:border-primary focus:bg-background focus:ring-1 focus:ring-primary rounded-lg shadow-sm transition-all"
-                placeholder="-"
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-zinc-400 group-focus-within:text-primary pointer-events-none uppercase">
-                KG
+          <div className="relative flex-1">
+            <Input
+              type="number"
+              inputMode="decimal"
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+              onBlur={(e) => handleBlur("weight", e.target.value)}
+              // On change le fond si c'est validé pour montrer que c'est "figé"
+              className={cn(
+                "h-10 text-center font-semibold rounded-md border-0 shadow-sm ring-1 ring-inset transition-all",
+                completed
+                  ? "bg-transparent text-foreground ring-transparent cursor-default"
+                  : "bg-zinc-50 dark:bg-zinc-900 ring-zinc-200 dark:ring-zinc-800 focus:ring-2 focus:ring-primary focus:bg-background"
+              )}
+              placeholder="-"
+              disabled={completed} // Ergonomie : on empêche la modif si validé
+            />
+            {!completed && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none uppercase">
+                kg
               </span>
-            </div>
-            <span className="text-muted-foreground/30 font-medium">✕</span>
-          </>
+            )}
+          </div>
         )}
 
-        <div className="relative flex-1 group">
+        <div className="relative flex-1">
           <Input
             type="number"
             inputMode="numeric"
             value={reps}
             onChange={(e) => setReps(e.target.value)}
             onBlur={(e) => handleBlur("reps", e.target.value)}
-            className="h-12 text-lg font-bold text-center bg-zinc-100 dark:bg-zinc-950 border-transparent dark:border-zinc-800 dark:border focus:border-primary focus:bg-background focus:ring-1 focus:ring-primary rounded-lg shadow-sm transition-all"
+            className={cn(
+              "h-10 text-center font-semibold rounded-md border-0 shadow-sm ring-1 ring-inset transition-all",
+              completed
+                ? "bg-transparent text-foreground ring-transparent cursor-default"
+                : "bg-zinc-50 dark:bg-zinc-900 ring-zinc-200 dark:ring-zinc-800 focus:ring-2 focus:ring-primary focus:bg-background"
+            )}
             placeholder="-"
+            disabled={completed}
           />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-zinc-400 group-focus-within:text-primary pointer-events-none uppercase">
-            {trackWeight ? "REPS" : "REPS/SEC"}
-          </span>
+          {!completed && (
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none uppercase">
+              {trackWeight ? "reps" : "sec"}
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Bouton Valider (Caché en mode Planning) */}
+      {/* BOUTON DE VALIDATION (STYLE ÉPURÉ) */}
       {!isPlanning ? (
         <button
           onClick={toggleComplete}
           className={cn(
-            "h-12 w-14 rounded-lg flex items-center justify-center transition-all shrink-0 active:scale-95 shadow-sm",
+            "h-10 px-3 rounded-md flex items-center justify-center gap-1 transition-all duration-200 shrink-0 font-bold text-xs select-none active:scale-95",
             completed
-              ? "bg-green-500 text-white shadow-green-500/20"
-              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-300 dark:text-zinc-600 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+              ? "bg-emerald-500 text-white shadow-sm" // Validé : Vert solide, texte blanc
+              : "bg-zinc-200 dark:bg-zinc-800 text-muted-foreground hover:bg-zinc-300 dark:hover:bg-zinc-700" // A faire : Gris neutre
           )}
         >
-          <Check
-            className={cn(
-              "h-7 w-7 stroke-[3]",
-              completed ? "scale-100" : "scale-90"
-            )}
-          />
+          {completed ? (
+            <>
+              <Check className="h-4 w-4 stroke-[3]" />
+            </>
+          ) : (
+            <>
+              <span className="mb-px">OK</span>
+            </>
+          )}
         </button>
       ) : (
-        // Placeholder visuel pour garder l'alignement quand le bouton est caché
-        <div className="w-14 h-12 flex items-center justify-center opacity-10">
+        // Placeholder
+        <div className="w-[52px] h-10 flex items-center justify-center opacity-10">
           <div className="h-1.5 w-1.5 rounded-full bg-current" />
         </div>
       )}

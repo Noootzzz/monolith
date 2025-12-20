@@ -7,11 +7,16 @@ import {
   timestamp,
   text,
   index,
+  pgEnum,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
-// --- AUTH (User, Session, Account...) ---
-// (Je garde cette partie identique à la vôtre, elle semblait correcte)
+export const workoutStatusEnum = pgEnum("workout_status", [
+  "PLANNING",
+  "IN_PROGRESS",
+  "COMPLETED",
+]);
+
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
@@ -87,7 +92,7 @@ export const verification = pgTable(
 export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),
   accounts: many(account),
-  workouts: many(workouts), // Ajout optionnel mais utile
+  workouts: many(workouts),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -103,8 +108,6 @@ export const accountRelations = relations(account, ({ one }) => ({
     references: [user.id],
   }),
 }));
-
-// --- APPLICATION (Exercices & Workouts) ---
 
 export const exercises = pgTable("exercises", {
   id: serial("id").primaryKey(),
@@ -124,7 +127,7 @@ export const workouts = pgTable("workouts", {
     .references(() => user.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   status: text("status").notNull().default("PLANNING"),
-  duration: integer("duration"),
+  duration: integer("duration").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   startTime: timestamp("start_time"),
   endTime: timestamp("end_time"),
@@ -139,6 +142,7 @@ export const workoutExercises = pgTable("workout_exercises", {
     .notNull()
     .references(() => exercises.id, { onDelete: "cascade" }),
   orderIndex: integer("order_index").notNull(),
+  restTime: integer("rest_time").default(90).notNull(),
 });
 
 export const sets = pgTable("sets", {
@@ -146,15 +150,13 @@ export const sets = pgTable("sets", {
   workoutExerciseId: integer("workout_exercise_id")
     .notNull()
     .references(() => workoutExercises.id, { onDelete: "cascade" }),
-  // CORRECTION ICI : "index" -> "order_index" pour correspondre à votre code de page
   orderIndex: integer("order_index").notNull(),
-  weight: text("weight").notNull().default("0"), // Mieux vaut text pour gérer la virgule facile ou decimal
+  weight: text("weight").notNull().default("0"),
   reps: integer("reps").notNull().default(0),
   rpe: integer("rpe"),
   isCompleted: boolean("is_completed").default(false),
 });
 
-// (Templates omis pour brièveté, mais gardez-les si vous les utilisez)
 export const workoutTemplates = pgTable("workout_templates", {
   id: serial("id").primaryKey(),
   userId: text("user_id")
@@ -175,9 +177,6 @@ export const workoutTemplateExercises = pgTable("workout_template_exercises", {
   orderIndex: integer("order_index").notNull(),
 });
 
-// --- RELATIONS (C'est ici que ça bloquait) ---
-
-// 1. Relation pour Workouts
 export const workoutsRelations = relations(workouts, ({ many }) => ({
   workoutExercises: many(workoutExercises),
 }));
@@ -186,7 +185,6 @@ export const exercisesRelations = relations(exercises, ({ many }) => ({
   workoutExercises: many(workoutExercises),
 }));
 
-// 2. Relation pour WorkoutExercises (Il manquait "sets")
 export const workoutExercisesRelations = relations(
   workoutExercises,
   ({ one, many }) => ({
@@ -198,11 +196,10 @@ export const workoutExercisesRelations = relations(
       fields: [workoutExercises.workoutId],
       references: [workouts.id],
     }),
-    sets: many(sets), // <--- AJOUT CRUCIAL
+    sets: many(sets),
   })
 );
 
-// 3. Relation pour Sets (Manquante)
 export const setsRelations = relations(sets, ({ one }) => ({
   workoutExercise: one(workoutExercises, {
     fields: [sets.workoutExerciseId],

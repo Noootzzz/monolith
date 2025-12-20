@@ -270,7 +270,7 @@ export function WorkoutExercisePicker({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <Button
-            className="w-full gap-2 text-base h-12 shadow-md hover:shadow-lg transition-all"
+            className="w-full gap-2 text-base mt-10 h-12 shadow-md hover:shadow-lg transition-all"
             suppressHydrationWarning
           >
             <Plus className="h-5 w-5" /> Ajouter un exercice
@@ -290,7 +290,7 @@ export function WorkoutExercisePicker({
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>
         <Button
-          className="w-full gap-2 text-base h-12 shadow-md mb-20 md:mb-0"
+          className="w-full gap-2 text-base mt-10 h-12 shadow-md mb-20 md:mb-0"
           suppressHydrationWarning
         >
           <Plus className="h-5 w-5" /> Ajouter un exercice

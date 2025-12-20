@@ -10,11 +10,8 @@ import {
 import { toast } from "sonner";
 
 interface WorkoutSessionContextType {
-  // Timer Global de la séance
   elapsedTime: number;
   isSessionActive: boolean;
-
-  // Timer de Repos (Rest Timer)
   isResting: boolean;
   restTimeLeft: number;
   startRest: (duration: number) => void;
@@ -27,29 +24,23 @@ const WorkoutSessionContext = createContext<WorkoutSessionContextType | null>(
 );
 
 export function WorkoutSessionProvider({ children }: { children: ReactNode }) {
-  // --- ÉTAT SÉANCE ---
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [isSessionActive, setIsSessionActive] = useState(true); // Tu pourras le lier au status DB plus tard
+  const [isSessionActive, setIsSessionActive] = useState(true);
 
-  // --- ÉTAT REPOS ---
   const [isResting, setIsResting] = useState(false);
   const [restTimeLeft, setRestTimeLeft] = useState(0);
 
-  // Effet pour le Timer GLOBAL (durée totale)
   useEffect(() => {
     if (!isSessionActive) return;
     const interval = setInterval(() => setElapsedTime((t) => t + 1), 1000);
     return () => clearInterval(interval);
   }, [isSessionActive]);
 
-  // Effet pour le Timer DE REPOS (Décompte)
   useEffect(() => {
     if (!isResting || restTimeLeft <= 0) {
       if (isResting && restTimeLeft <= 0) {
-        // Fin du repos automatique
         setIsResting(false);
         toast.info("Repos terminé ! Au boulot 💪", { duration: 3000 });
-        // Ici on pourrait jouer un son
       }
       return;
     }
@@ -60,8 +51,6 @@ export function WorkoutSessionProvider({ children }: { children: ReactNode }) {
 
     return () => clearInterval(interval);
   }, [isResting, restTimeLeft]);
-
-  // --- ACTIONS ---
 
   const startRest = (duration: number) => {
     setRestTimeLeft(duration);

@@ -11,7 +11,7 @@ import {
   workoutTemplates,
   workoutTemplateExercises,
 } from "@/db/schema";
-import { eq, and, desc, lt, gt, asc } from "drizzle-orm";
+import { eq, and, desc, lt, gt, asc, inArray, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -27,7 +27,6 @@ export const createExercise = async (formData: FormData) => {
   const userId = session.user.id;
   const name = formData.get("name") as string;
   const muscle = formData.get("targetMuscle") as string;
-
   const trackWeightInput = formData.get("trackWeight");
   const trackWeight = trackWeightInput === "on";
 
@@ -52,7 +51,6 @@ export const createExercise = async (formData: FormData) => {
   });
 
   revalidatePath("/dashboard");
-
   return { success: true };
 };
 
@@ -122,12 +120,10 @@ export async function createEmptyWorkout() {
   }
 
   const now = new Date();
-
   const dayName = new Intl.DateTimeFormat("fr-FR", { weekday: "long" }).format(
     now
   );
   const capitalizedDay = dayName.charAt(0).toUpperCase() + dayName.slice(1);
-
   const time = new Intl.DateTimeFormat("fr-FR", {
     hour: "2-digit",
     minute: "2-digit",
@@ -164,6 +160,56 @@ export async function startWorkout(workoutId: number) {
       startTime: new Date(),
     })
     .where(eq(workouts.id, workoutId));
+
+  revalidatePath(`/workout/${workoutId}`, "page");
+}
+
+export async function startWorkoutWithConfig(
+  workoutId: number,
+  exercisesConfig: any[]
+) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) throw new Error("Unauthorized");
+
+  await db
+    .update(workouts)
+    .set({
+      status: "IN_PROGRESS",
+      startTime: new Date(),
+    })
+    .where(eq(workouts.id, workoutId));
+
+  for (const exo of exercisesConfig) {
+    // --- CORRECTION MAJEURE ICI ---
+    // Si l'utilisateur n'a prévu aucune série (0 sets), on supprime l'exercice de la séance
+    // pour qu'il n'apparaisse pas "vide" dans la vue Live.
+    if (!exo.sets || exo.sets.length === 0) {
+      await db.delete(workoutExercises).where(eq(workoutExercises.id, exo.id));
+      await db.delete(sets).where(eq(sets.workoutExerciseId, exo.id));
+      continue; // On passe à l'exercice suivant
+    }
+
+    // Sinon, on met à jour le repos
+    await db
+      .update(workoutExercises)
+      .set({ restTime: exo.restTime })
+      .where(eq(workoutExercises.id, exo.id));
+
+    // On nettoie les anciennes séries et on met les nouvelles
+    await db.delete(sets).where(eq(sets.workoutExerciseId, exo.id));
+
+    if (exo.sets && exo.sets.length > 0) {
+      const setsToInsert = exo.sets.map((s: any, index: number) => ({
+        workoutExerciseId: exo.id,
+        orderIndex: index + 1,
+        weight: s.weight ? String(s.weight) : "0",
+        reps: Number(s.reps) || 0,
+        isCompleted: false,
+      }));
+
+      await db.insert(sets).values(setsToInsert);
+    }
+  }
 
   revalidatePath(`/workout/${workoutId}`, "page");
 }
@@ -210,7 +256,7 @@ export async function startTimer(workoutId: number) {
   await db
     .update(workouts)
     .set({
-      status: "ACTIVE",
+      status: "IN_PROGRESS",
       startTime: new Date(),
     })
     .where(eq(workouts.id, workoutId));
@@ -230,6 +276,48 @@ export async function finishWorkout(workoutId: number) {
     );
 
   if (!workout) throw new Error("Workout not found");
+
+  // --- NETTOYAGE DE FIN DE SÉANCE ---
+  // On supprime ce qui n'a pas été fait.
+
+  // 1. Récupérer les exos de la séance
+  const workoutExos = await db
+    .select({ id: workoutExercises.id })
+    .from(workoutExercises)
+    .where(eq(workoutExercises.workoutId, workoutId));
+
+  const workoutExoIds = workoutExos.map((we) => we.id);
+
+  if (workoutExoIds.length > 0) {
+    // 2. Supprimer les séries non validées ou vides (0 reps)
+    await db
+      .delete(sets)
+      .where(
+        and(
+          inArray(sets.workoutExerciseId, workoutExoIds),
+          or(eq(sets.isCompleted, false), eq(sets.reps, 0))
+        )
+      );
+
+    // 3. Supprimer les exercices qui se retrouvent vides après suppression des séries
+    const exosWithSets = await db
+      .select({ id: sets.workoutExerciseId })
+      .from(sets)
+      .where(inArray(sets.workoutExerciseId, workoutExoIds))
+      .groupBy(sets.workoutExerciseId);
+
+    const validExoIds = exosWithSets.map((e) => e.id);
+
+    const exosToDelete = workoutExoIds.filter(
+      (id) => !validExoIds.includes(id)
+    );
+
+    if (exosToDelete.length > 0) {
+      await db
+        .delete(workoutExercises)
+        .where(inArray(workoutExercises.id, exosToDelete));
+    }
+  }
 
   const endTime = new Date();
   let duration = 0;
@@ -372,7 +460,6 @@ export async function reorderExercises(
   revalidatePath("/workout/[id]", "page");
 }
 
-// --- CORRECTION ICI : Remplacement de index par orderIndex ---
 export async function addSet(workoutExerciseId: number) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) throw new Error("Unauthorized");
@@ -381,7 +468,7 @@ export async function addSet(workoutExerciseId: number) {
     .select()
     .from(sets)
     .where(eq(sets.workoutExerciseId, workoutExerciseId))
-    .orderBy(asc(sets.orderIndex)); // <-- CORRIGÉ : orderIndex
+    .orderBy(asc(sets.orderIndex));
 
   const nextIndex = existingSets.length + 1;
   const lastSet = existingSets[existingSets.length - 1];
@@ -390,7 +477,7 @@ export async function addSet(workoutExerciseId: number) {
 
   await db.insert(sets).values({
     workoutExerciseId,
-    orderIndex: nextIndex, // <-- CORRIGÉ : orderIndex
+    orderIndex: nextIndex,
     weight: defaultWeight,
     reps: defaultReps,
     isCompleted: false,
@@ -411,16 +498,20 @@ export async function updateSet(
 
   if (field === "weight" || field === "reps" || field === "rpe") {
     if (value === "" || value === undefined || value === null) {
-      valueToUpdate = null as any;
+      if (field === "weight") valueToUpdate = "0";
+      else if (field === "reps") valueToUpdate = 0;
+      else valueToUpdate = null as any;
     } else {
-      // Si c'est le poids, on garde le string si possible, sinon number pour reps/rpe
-      // Dans le doute, on convertit en number ici car c'était votre logique existante,
-      // mais attention si weight est "text" en DB.
       const parsed = Number(value);
-      valueToUpdate = isNaN(parsed) ? (null as any) : parsed;
-      // Pour le poids qui est du TEXT en DB, on le reconvertit en string
-      if (field === "weight") {
-        valueToUpdate = valueToUpdate.toString();
+      if (isNaN(parsed)) {
+        if (field === "weight") valueToUpdate = "0";
+        else if (field === "reps") valueToUpdate = 0;
+        else valueToUpdate = null as any;
+      } else {
+        valueToUpdate = parsed;
+        if (field === "weight") {
+          valueToUpdate = valueToUpdate.toString();
+        }
       }
     }
   }
@@ -499,9 +590,24 @@ export async function createWorkout(name: string = "Séance du jour") {
       userId: session.user.id,
       name: name,
       status: "PLANNING",
-      startTime: new Date(),
+      startTime: null,
     })
     .returning({ id: workouts.id });
 
   return newWorkout.id;
+}
+
+export async function updateWorkoutExerciseRest(
+  workoutExerciseId: number,
+  seconds: number
+) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) throw new Error("Unauthorized");
+
+  await db
+    .update(workoutExercises)
+    .set({ restTime: seconds })
+    .where(eq(workoutExercises.id, workoutExerciseId));
+
+  revalidatePath("/workout/[id]");
 }

@@ -38,7 +38,7 @@ export function Sidebar({ className, onSignOut }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "hidden md:flex w-64 flex-col border-r bg-white dark:bg-zinc-900 px-4 py-6 justify-between fixed h-full z-30",
+        "hidden md:flex w-64 flex-col border-r bg-white dark:bg-zinc-900 px-4 py-6 justify-between fixed h-full z-50",
         className
       )}
     >

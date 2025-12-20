@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidateTag, revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { db } from "@/db";
@@ -12,8 +13,9 @@ import {
   workoutTemplateExercises,
 } from "@/db/schema";
 import { eq, and, desc, lt, gt, asc, inArray, or } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+
+// --- EXERCICES ---
 
 export const createExercise = async (formData: FormData) => {
   const session = await auth.api.getSession({
@@ -50,6 +52,9 @@ export const createExercise = async (formData: FormData) => {
     trackWeight: trackWeight,
   });
 
+  // ⚡ CORRECTION ICI : Ajout du 2ème argument pour votre version de Next.js
+  revalidateTag("exercises", { expire: 0 });
+
   revalidatePath("/dashboard");
   return { success: true };
 };
@@ -68,6 +73,8 @@ export async function deleteExercise(exerciseId: number) {
       )
     );
 
+  // ⚡ CORRECTION ICI
+  revalidateTag("exercises", { expire: 0 });
   revalidatePath("/exercises");
 }
 
@@ -85,6 +92,8 @@ export async function updateExercise(exerciseId: number, formData: FormData) {
       and(eq(exercises.id, exerciseId), eq(exercises.userId, session.user.id))
     );
 
+  // ⚡ CORRECTION ICI
+  revalidateTag("exercises", { expire: 0 });
   revalidatePath("/exercises");
 }
 
@@ -106,9 +115,13 @@ export const toggleExerciseFavorite = async (exerciseId: number) => {
     .set({ isFavorite: !exercise.isFavorite })
     .where(eq(exercises.id, exerciseId));
 
+  // ⚡ CORRECTION ICI
+  revalidateTag("exercises", { expire: 0 });
   revalidatePath("/exercises");
   revalidatePath("/workout/[id]", "page");
 };
+
+// --- SÉANCES (WORKOUTS) ---
 
 export async function createEmptyWorkout() {
   const session = await auth.api.getSession({
@@ -180,22 +193,17 @@ export async function startWorkoutWithConfig(
     .where(eq(workouts.id, workoutId));
 
   for (const exo of exercisesConfig) {
-    // --- CORRECTION MAJEURE ICI ---
-    // Si l'utilisateur n'a prévu aucune série (0 sets), on supprime l'exercice de la séance
-    // pour qu'il n'apparaisse pas "vide" dans la vue Live.
     if (!exo.sets || exo.sets.length === 0) {
       await db.delete(workoutExercises).where(eq(workoutExercises.id, exo.id));
       await db.delete(sets).where(eq(sets.workoutExerciseId, exo.id));
-      continue; // On passe à l'exercice suivant
+      continue;
     }
 
-    // Sinon, on met à jour le repos
     await db
       .update(workoutExercises)
       .set({ restTime: exo.restTime })
       .where(eq(workoutExercises.id, exo.id));
 
-    // On nettoie les anciennes séries et on met les nouvelles
     await db.delete(sets).where(eq(sets.workoutExerciseId, exo.id));
 
     if (exo.sets && exo.sets.length > 0) {
@@ -277,10 +285,6 @@ export async function finishWorkout(workoutId: number) {
 
   if (!workout) throw new Error("Workout not found");
 
-  // --- NETTOYAGE DE FIN DE SÉANCE ---
-  // On supprime ce qui n'a pas été fait.
-
-  // 1. Récupérer les exos de la séance
   const workoutExos = await db
     .select({ id: workoutExercises.id })
     .from(workoutExercises)
@@ -289,7 +293,6 @@ export async function finishWorkout(workoutId: number) {
   const workoutExoIds = workoutExos.map((we) => we.id);
 
   if (workoutExoIds.length > 0) {
-    // 2. Supprimer les séries non validées ou vides (0 reps)
     await db
       .delete(sets)
       .where(
@@ -299,7 +302,6 @@ export async function finishWorkout(workoutId: number) {
         )
       );
 
-    // 3. Supprimer les exercices qui se retrouvent vides après suppression des séries
     const exosWithSets = await db
       .select({ id: sets.workoutExerciseId })
       .from(sets)
@@ -307,7 +309,6 @@ export async function finishWorkout(workoutId: number) {
       .groupBy(sets.workoutExerciseId);
 
     const validExoIds = exosWithSets.map((e) => e.id);
-
     const exosToDelete = workoutExoIds.filter(
       (id) => !validExoIds.includes(id)
     );

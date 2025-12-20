@@ -29,6 +29,7 @@ export function MobileNav() {
     return (
       <Link
         href={item.href}
+        prefetch={true}
         className={cn(
           "flex flex-col items-center justify-center w-1/2 h-full space-y-1 transition-all duration-200 active:scale-90",
           isActive
@@ -61,9 +62,11 @@ export function MobileNav() {
           ))}
         </div>
 
+        {/* Bouton Central (Séance) */}
         <div className="shrink-0 w-20 h-full flex items-center justify-center px-1">
           <Link
             href="/workout"
+            prefetch={true}
             className="group w-full h-full flex items-center justify-center"
           >
             <div

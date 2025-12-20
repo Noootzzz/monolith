@@ -51,7 +51,7 @@ export function Sidebar({ className, onSignOut }: SidebarProps) {
         </div>
 
         <div className="px-2 mb-6">
-          <Link href="/workout">
+          <Link href="/workout" prefetch={true}>
             <Button className="w-full justify-start gap-2 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all font-bold">
               <Plus className="h-5 w-5" />
               Nouvelle Séance
@@ -66,6 +66,7 @@ export function Sidebar({ className, onSignOut }: SidebarProps) {
               <Link
                 key={item.name}
                 href={item.href}
+                prefetch={true} // 👈 AJOUT CRUCIAL ICI
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   isActive

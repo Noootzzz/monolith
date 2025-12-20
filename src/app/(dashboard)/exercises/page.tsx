@@ -6,8 +6,31 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { DashboardHeader } from "@/components/ui/dashboard-header";
 import { AddExerciseDialog } from "@/components/exercises/add-exercise-dialog";
-// On réutilise votre browser (qui gère les filtres)
 import { ExerciseBrowser } from "@/components/exercises/exercise-browser";
+import { unstable_cache } from "next/cache";
+
+// Fonction de récupération avec cache
+const getCachedExercises = unstable_cache(
+  async (userId: string) => {
+    return await db
+      .select({
+        id: exercises.id,
+        name: exercises.name,
+        targetMuscle: exercises.targetMuscle,
+        isSystem: exercises.isSystem,
+        isFavorite: exercises.isFavorite,
+        instructions: exercises.instructions,
+      })
+      .from(exercises)
+      .where(or(eq(exercises.isSystem, true), eq(exercises.userId, userId)))
+      .orderBy(asc(exercises.name));
+  },
+  ["user-exercises"], // Clé interne
+  {
+    tags: ["exercises"], // Tag pour revalidateTag
+    revalidate: 3600, // Cache valide 1h par défaut
+  }
+);
 
 export default async function ExercisesPage() {
   const session = await auth.api.getSession({
@@ -16,20 +39,8 @@ export default async function ExercisesPage() {
 
   if (!session) redirect("/login");
 
-  const allExercises = await db
-    .select({
-      id: exercises.id,
-      name: exercises.name,
-      targetMuscle: exercises.targetMuscle,
-      isSystem: exercises.isSystem,
-      isFavorite: exercises.isFavorite,
-      instructions: exercises.instructions,
-    })
-    .from(exercises)
-    .where(
-      or(eq(exercises.isSystem, true), eq(exercises.userId, session.user.id))
-    )
-    .orderBy(asc(exercises.name));
+  // Appel de la version cachée
+  const allExercises = await getCachedExercises(session.user.id);
 
   return (
     <>
